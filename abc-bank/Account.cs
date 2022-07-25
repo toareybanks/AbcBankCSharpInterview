@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,7 +14,9 @@ namespace abc_bank
         public const int MAXI_SAVINGS = 2;
 
         private readonly int accountType;
+        public double yearlyRate;
         public List<Transaction> transactions;
+
 
         public Account(int accountType) 
         {
@@ -24,43 +26,70 @@ namespace abc_bank
 
         public void Deposit(double amount) 
         {
-            if (amount <= 0) {
-                throw new ArgumentException("amount must be greater than zero");
-            } else {
-                transactions.Add(new Transaction(amount));
-            }
+            BankTransactionAction(amount);
         }
 
         public void Withdraw(double amount) 
         {
-            if (amount <= 0) {
+            BankTransactionAction(amount, true);
+        }
+
+        public void BankTransactionAction(double amount, bool withdraw = false)
+        {
+            if (amount <= 0)
+            {
                 throw new ArgumentException("amount must be greater than zero");
-            } else {
-                transactions.Add(new Transaction(-amount));
+            }
+            else
+            {
+                transactions.Add(new Transaction(withdraw==true?-amount:amount));
             }
         }
 
         public double InterestEarned() 
         {
             double amount = sumTransactions();
+            double ntotal =0;
             switch(accountType){
                 case SAVINGS:
                     if (amount <= 1000)
-                        return amount * 0.001;
-                    else
-                        return 1 + (amount-1000) * 0.002;
-    //            case SUPER_SAVINGS:
-    //                if (amount <= 4000)
-    //                    return 20;
+                    { ntotal = CalcInterestEarned(amount);  }
+                        
+                    if (amount > 1000) { ntotal = CalcInterestEarned((amount - amount) + 1000) + CalcInterestEarned(amount - 1000, 1); }
+                      break;  
                 case MAXI_SAVINGS:
                     if (amount <= 1000)
-                        return amount * 0.02;
-                    if (amount <= 2000)
-                        return 20 + (amount-1000) * 0.05;
-                    return 70 + (amount-2000) * 0.1;
+                        ntotal = CalcInterestEarned(amount);
+                    if (amount >= 1000 && amount <= 2000)
+                        ntotal = CalcInterestEarned((amount - amount) + 1000) + CalcInterestEarned(amount - 1000, 1);
+                    if(amount >=3000)
+                        ntotal = CalcInterestEarned((amount - amount) + 1000) + CalcInterestEarned((amount - amount) + 2000, 1) + CalcInterestEarned(amount - 2000, 2);
+                    break;
                 default:
-                    return amount * 0.001;
+                    ntotal = CalcInterestEarned(amount);
+                    break;
             }
+            return ntotal;
+        }
+
+        public double CalcInterestEarned(double amount, int totalth = 0)
+        {
+            double namount=0;
+            if(totalth == 0) namount += (accountType != MAXI_SAVINGS && amount == 1000? (amount * 0.01): (amount  *0.002));
+            if(accountType == SAVINGS  && amount > 1000 && totalth > 0) namount += (amount * 0.002);
+            if (accountType == MAXI_SAVINGS && amount > 1000 && totalth == 1) namount += (amount * 0.005);
+            if (accountType == MAXI_SAVINGS && amount > 1000 && totalth > 1) namount += (amount * 0.01);
+            return amount + namount;
+        }
+
+        public double CalcYearlyInterestEarned(int year)
+        {
+            double amount = 0;
+            List<Transaction> lst = new List<Transaction>();
+            lst = GetTransactions(year);
+            foreach (Transaction t in lst)
+                amount += t.amount;
+            return CalcInterestEarned(amount);
         }
 
         public double sumTransactions() {
@@ -73,6 +102,38 @@ namespace abc_bank
             foreach (Transaction t in transactions)
                 amount += t.amount;
             return amount;
+        }
+
+
+        private List<Transaction> GetWithdrawnTransactions(DateTime currentdate, int numberofdays=0)
+        {
+            List<Transaction> lst = new List<Transaction>();
+            foreach (Transaction t in transactions)
+            {
+                if (t.transactionDate >= currentdate.AddDays(-numberofdays) 
+                        && t.transactionDate <= currentdate && t.amount <0) lst.Add(t);
+            }
+            return lst;
+        }
+
+        private List<Transaction> GetTransactions(DateTime currentdate)
+        {
+            List<Transaction> lst = new List<Transaction>();
+            foreach (Transaction t in transactions)
+            {
+               if( t.transactionDate == currentdate) lst.Add(t);
+            }
+            return lst;
+        }
+
+        private List<Transaction> GetTransactions(int year)
+        {
+            List<Transaction> lst = new List<Transaction>();
+            foreach (Transaction t in transactions)
+            {
+                if (t.transactionDate.Year == year) lst.Add(t);
+            }
+            return lst;
         }
 
         public int GetAccountType() 
