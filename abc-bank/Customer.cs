@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -40,6 +40,8 @@ namespace abc_bank
                 total += a.InterestEarned();
             return total;
         }
+
+      
 
         public String GetStatement() 
         {
@@ -84,7 +86,7 @@ namespace abc_bank
 
         private String ToDollars(double d)
         {
-            return String.Format("$%,.2f", Math.Abs(d));
+            return String.Format("{0:C2}", Math.Abs(d));
         }
     }
 }
